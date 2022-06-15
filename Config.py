@@ -1,5 +1,8 @@
 # Configuration file, seldom needs to be changed.
 
+import logging
+# LOGGING_LEVEL = logging.DEBUG
+LOGGING_LEVEL = logging.INFO
 # Absolute path to directory holding this application's files
 FILEPATH = "/home/pi/FTP/VolumeControl"
 
@@ -24,11 +27,12 @@ BPIN=16
 # 1 = i2c Adafruit HT16K33 segments
 # 2 = TM1637
 DISPLAYTYPE = 1
-# TM1637 data pins (only necessary if display type is TM1637)
+
+# TM1637 data pins (only necessary if display type is TM1637, ignored if TM1637 not used)
 CLK = 5
 DIO = 4
 
 # Ports for Cinema Processors
 # These shouldn't ever need to change
-DOLBYPORT = 61408       # port for Dolby CP_50 Cinema Processors
-JSDPORT = 10001         # port for JSD Cinema Processors
+# DOLBYPORT = 61408       # port for Dolby CP_50 Cinema Processors
+# JSDPORT = 10001         # port for JSD Cinema Processors

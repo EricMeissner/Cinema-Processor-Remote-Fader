@@ -13,7 +13,9 @@ import time
 
 LOGGER = logging.getLogger(__name__)
 ERROR_PREFIX='⚠'
-PORT = Config.DOLBYPORT
+
+# Dolby defined port.
+PORT = 61408
 
 
 def error_to_str(e):

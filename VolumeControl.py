@@ -22,7 +22,7 @@ import ChangeIP
 import Config
 
 # Switch to debug if you want a lot of unnecessary garbage in your log file when things go weird.
-LOGGING_LEVEL = logging.INFO
+LOGGING_LEVEL = Config.LOGGING_LEVEL
 
 class ProgramState(Enum):
     LOADING = 0

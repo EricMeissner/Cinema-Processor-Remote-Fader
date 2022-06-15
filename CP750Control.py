@@ -14,7 +14,9 @@ import Config
 LOGGER = logging.getLogger(__name__)
 ERROR_PREFIX='⚠'
 SOCKET_TIMEOUT=250
-PORT = Config.DOLBYPORT
+
+# Dolby defined port.
+PORT = 61408
 
 
 def nonblocking_readline(f, timeout=SOCKET_TIMEOUT):

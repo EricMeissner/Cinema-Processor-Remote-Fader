@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-#This class deals with communicating with the CP850/950
+#This class deals with communicating with the JSD-60
 
 #Modified significantly from https://github.com/Cybso/cp750client
 
@@ -13,7 +13,9 @@ import time
 
 LOGGER = logging.getLogger(__name__)
 ERROR_PREFIX='⚠'
-PORT = Config.DOLBYPORT
+
+# JSD defined port.
+PORT = 10001
 
 
 def error_to_str(e):
@@ -34,7 +36,7 @@ class JSD60Control(CinemaProcessor.CinemaProcessor):
         else:
             # Test if socket is alive...
             LOGGER.debug('Testing if socket is alive')
-            result = self.send('jsd60.sys.fader')
+            result = self.send('jsd60.sys.fader\t')
                 
             if not result or result.startswith(ERROR_PREFIX):
                 self.disconnect()
@@ -107,7 +109,7 @@ class JSD60Control(CinemaProcessor.CinemaProcessor):
 #        see CinemaProcessor
      
     def getfader(self):
-        return self.stripvalue(self.send('jsd60.sys.fader'))
+        return self.stripvalue(self.send('jsd60.sys.fader\t'))
     
     def setfader(self, value):
         return self.stripvalue(self.send(f'jsd60.sys.fader\t{value}'))
@@ -116,7 +118,7 @@ class JSD60Control(CinemaProcessor.CinemaProcessor):
         return self.stripvalue(self.send(f'jsd60.sys.mute\t{mute}'))
     
     def getmute(self):
-        return self.stripvalue(self.send('jsd60.sys.mute'))
+        return self.stripvalue(self.send('jsd60.sys.mute\t'))
     
     def displayfader(self):
         rawfader = str(self.getfader())
@@ -124,25 +126,6 @@ class JSD60Control(CinemaProcessor.CinemaProcessor):
         return f'{str(formattedfader).rjust(5," ")}'
     
 def main():
-#     logging.basicConfig(filename='CP850Control.log', encoding='utf-16', level=logging.INFO)
-#     LOGGER.info('________STARTING TEST________')
-#     print('Note: This won\'t display on the digital display, just the console.')
-#     cp = CP850Control(Config.HOST, Config.PORT)
-#     cp.connect()
-#     while cp.getState() != 'connected':
-#         print('Check connection')
-#         time.sleep(1)
-#         cp.connect()
-#     print(cp.getfader())
-#     time.sleep(1)
-#     cp.addfader(5)
-#     print(cp.getfader())
-#     time.sleep(1)
-#     cp.setfader(50)
-#     print(cp.getfader())
-#     time.sleep(1)
-#     cp.setfader(70)
-#     print(cp.getfader())
     pass
     
 if __name__ == '__main__':
