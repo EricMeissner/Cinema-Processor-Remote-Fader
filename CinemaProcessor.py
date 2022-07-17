@@ -29,6 +29,7 @@ class CinemaProcessor(ABC):
     # This will probably need to be overridden, but it works for Dolby Cinema processors
     # A response string is split by spaces and the last element (the response data) is returned.
     # If it's an number, it's cast as an integer first.
+    # Return True if both values are numbers, False if there was an issue (like a timeout)
     def stripvalue(self, responseText):
         value = responseText.strip().split(" ")[-1]
         if (value.isdigit()):
@@ -37,14 +38,18 @@ class CinemaProcessor(ABC):
             return value
         
     def addfader(self, value=1):
-        if(isinstance(value, int)):
-            fader = self.getfader() + value
-            if(fader<0):
+        currentFader = self.getfader()
+        if(isinstance(value, int) and isinstance(currentFader, int)):
+            newFader = currentFader + value
+            if(newFader<0):
                 self.setfader(0)
-            elif(fader>100):
+            elif(newFader>100):
                 self.setfader(100)
             else:
-                self.setfader(fader)
+                self.setfader(newFader)
+            return True
+        else:
+            return False
                 
     @abstractmethod
     def getfader(self):

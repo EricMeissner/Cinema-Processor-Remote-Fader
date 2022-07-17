@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-#This class deals with communicating with the CP850/950
+#This class deals with communicating with the CP650
 
 #Modified significantly from https://github.com/Cybso/cp750client
 
@@ -15,7 +15,7 @@ LOGGER = logging.getLogger(__name__)
 ERROR_PREFIX='⚠'
 
 # Dolby defined port.
-PORT = 61408
+PORT = 61412
 
 
 def error_to_str(e):
@@ -26,7 +26,7 @@ def error_to_str(e):
         return ERROR_PREFIX + e.strerror
     return ERROR_PREFIX + type(e).__name__LOGGER
 
-class CP850Control(CinemaProcessor.CinemaProcessor):
+class CP650Control(CinemaProcessor.CinemaProcessor):
     def __init__(self, host):
         super().__init__(host, PORT)
     
@@ -36,7 +36,7 @@ class CP850Control(CinemaProcessor.CinemaProcessor):
         else:
             # Test if socket is alive...
             LOGGER.debug('Testing if socket is alive')
-            result = self.send('sys.fader ?')
+            result = self.send('fader_level=?')
                 
             if not result or result.startswith(ERROR_PREFIX):
                 self.disconnect()
@@ -88,35 +88,35 @@ class CP850Control(CinemaProcessor.CinemaProcessor):
             return result
         except Exception as e:
             LOGGER.exception("Command '%s' failed" % command)
-            if e.errno == errno.EWOULDBLOCK:
-                LOGGER.info("errno.EWOULDBLOCK found______________________")
-                pass
-            else:
-                return error_to_str(e)
+            return error_to_str(e)
     
     
     # Extracts the actual value from the response from the Cinema processor
-#     def stripvalue(self, responseText):
-#         see CinemaProcessor
+    def stripvalue(self, responseText):
+        value = responseText.strip().split("=")[-1]
+        if (value.isdigit()):
+            return int(value)
+        else:
+            return value
 
     # Adds or subtracts an integer to the fader
 #     def addfader(self, value=1):
 #        see CinemaProcessor
      
     def getfader(self):
-        return self.stripvalue(self.send('sys.fader ?'))
+        return self.stripvalue(self.send('fader_level=?'))
     
     def setfader(self, value):
-        return self.stripvalue(self.send(f'sys.fader {value}'))
+        return self.stripvalue(self.send(f'fader_level={value}'))
     
     def setmute(self, mute=1):
-        return self.stripvalue(self.send(f'sys.mute {mute}'))
+        return self.stripvalue(self.send(f'mute={mute}'))
     
     def getmute(self):
-        return self.stripvalue(self.send('sys.mute ?'))
+        return self.stripvalue(self.send('mute=?'))
     
     def getversion(self):
-        return self.stripvalue(self.send('sysinfo.version ?'))
+        return 'Version unavailable for CP650'
     
     def displayfader(self):
         fader = self.getfader()
@@ -128,10 +128,10 @@ class CP850Control(CinemaProcessor.CinemaProcessor):
             return False
     
 def main():
-    logging.basicConfig(filename='CP850Control.log', encoding='utf-16', level=logging.INFO)
+    logging.basicConfig(filename='CP650Control.log', encoding='utf-16', level=logging.INFO)
     LOGGER.info('________STARTING TEST________')
     print('Note: This won\'t display on the digital display, just the console.')
-    cp = CP850Control(Config.HOST, Config.PORT)
+    cp = CP650Control(Config.HOST, Config.PORT)
     cp.connect()
     while cp.getState() != 'connected':
         print('Check connection')

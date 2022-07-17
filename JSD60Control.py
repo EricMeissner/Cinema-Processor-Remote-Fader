@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-#This class deals with communicating with the JSD-60
+#This class deals with communicating with the JSD60
 
 #Modified significantly from https://github.com/Cybso/cp750client
 
@@ -13,9 +13,8 @@ import time
 
 LOGGER = logging.getLogger(__name__)
 ERROR_PREFIX='⚠'
-
-# JSD defined port.
 PORT = 10001
+API_PREFIX='jsd60'
 
 
 def error_to_str(e):
@@ -36,7 +35,7 @@ class JSD60Control(CinemaProcessor.CinemaProcessor):
         else:
             # Test if socket is alive...
             LOGGER.debug('Testing if socket is alive')
-            result = self.send('jsd60.sys.fader\t')
+            result = self.send(f'{API_PREFIX}.sys.fader')
                 
             if not result or result.startswith(ERROR_PREFIX):
                 self.disconnect()
@@ -105,20 +104,33 @@ class JSD60Control(CinemaProcessor.CinemaProcessor):
             return value
 
     # Adds or subtracts an integer to the fader
-#     def addfader(self, value=1):
-#        see CinemaProcessor
+    def addfader(self, value=1):
+        #compensate for JSD faders having an extraneous trailing zero
+        value=value*10 
+        currentFader = self.getfader()
+        if(isinstance(value, int) and isinstance(currentFader, int)):
+            newFader = currentFader + value
+            if(newFader<0):
+                self.setfader(0)
+            elif(newFader>1000):
+                self.setfader(1000)
+            else:
+                self.setfader(newFader)
+            return True
+        else:
+            return False
      
     def getfader(self):
-        return self.stripvalue(self.send('jsd60.sys.fader\t'))
+        return self.stripvalue(self.send(f'{API_PREFIX}.sys.fader'))
     
     def setfader(self, value):
-        return self.stripvalue(self.send(f'jsd60.sys.fader\t{value}'))
+        return self.stripvalue(self.send(f'{API_PREFIX}.sys.fader\t{value}'))
     
     def setmute(self, mute=1):
-        return self.stripvalue(self.send(f'jsd60.sys.mute\t{mute}'))
+        return self.stripvalue(self.send(f'{API_PREFIX}.sys.mute\t{mute}'))
     
     def getmute(self):
-        return self.stripvalue(self.send('jsd60.sys.mute\t'))
+        return self.stripvalue(self.send(f'{API_PREFIX}.sys.mute'))
     
     def displayfader(self):
         rawfader = str(self.getfader())

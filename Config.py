@@ -9,7 +9,7 @@ FILEPATH = "/home/pi/FTP/VolumeControl"
 # Polling/update delay in seconds
 # A lower delay will make the the fader more responsive, BUT if it is too low
 # the frequent requests to the Cinema Processor can be rejected, causing buggy responses.
-POLLING_DELAY = 0.1
+POLLING_DELAY = 0.3
 
 # Encoder Sensitivity
 # We had an encoder that incremented twice for one click, so we added this so we could
@@ -35,4 +35,5 @@ DIO = 4
 # Ports for Cinema Processors
 # These shouldn't ever need to change
 # DOLBYPORT = 61408       # port for Dolby CP_50 Cinema Processors
+# CP650PORT = 61412
 # JSDPORT = 10001         # port for JSD Cinema Processors

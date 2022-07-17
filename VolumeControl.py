@@ -14,9 +14,11 @@ from pynput.keyboard import *
 from enum import Enum
 
 #Files should be in the same folder as this file.
+import CP650Control
 import CP750Control
 import CP850Control
 import JSD60Control
+import JSD100Control
 import RotaryEncoder
 import ChangeIP
 import Config
@@ -33,15 +35,18 @@ class ProgramState(Enum):
     EDIT_OWNIP = 5
     RESTART = 6
     ERROR = 7
+    SHUTDOWN= 8
     
 # Types of Cinema Processors supported.
 class CPTypeCode(Enum):
-    CP750 = 1
-    CP850 = 2
-    CP950 = 3
-    JSD60 = 4
+    CP650 = 1
+    CP750 = 2
+    CP850 = 3
+    CP950 = 4
+    JSD60 = 5
+    JSD100 = 6
 # UPDATE THIS WHEN YOU ADD MORE CPTypeCodes!    
-LASTCPTYPEVALUE = 4
+LASTCPTYPEVALUE = 6
 
 # Encoder pins
 APIN=Config.APIN
@@ -75,6 +80,8 @@ def press_on(key):
     global cp,terminate,keyInput,pState,cpType,host,ownIP,newCPType
     if key == Key.esc:
         terminate = True
+        pState = ProgramState.SHUTDOWN
+        refeshOLED()
         return False
     elif key == Key.media_volume_up:
         cp.addfader(1)
@@ -103,10 +110,16 @@ def press_on(key):
             keyInput = ""
         refeshOLED()
     elif key in (Key.up, Key.down) and pState == ProgramState.EDIT_CPTYPE:
-        if (key == Key.down and newCPType.value > 1):
-            newCPType = CPTypeCode(newCPType.value-1)
-        elif (key == Key.up and newCPType.value < LASTCPTYPEVALUE):
-            newCPType = CPTypeCode(newCPType.value+1)
+        if (key == Key.down): 
+            if (newCPType.value <= 1):
+                newCPType = CPTypeCode(LASTCPTYPEVALUE)
+            else:
+                newCPType = CPTypeCode(newCPType.value-1)
+        elif (key == Key.up):
+            if (newCPType.value >= LASTCPTYPEVALUE):
+                newCPType = CPTypeCode(1)
+            else:
+                newCPType = CPTypeCode(newCPType.value+1)
         refeshOLED()
     elif key == Key.backspace and pState in (ProgramState.EDIT_CPIP, ProgramState.EDIT_OWNIP):
         if len(keyInput) > 0:
@@ -256,6 +269,8 @@ def refeshOLED():
             inputLine = errorOutput.upper()
         else:
             inputLine = "ERROR"
+    elif pState == ProgramState.SHUTDOWN:
+        inputLine = "SHUTTING DOWN"
     else:
         inputLine = "PROGRAM STATE UNKNOWN"
         
@@ -274,12 +289,16 @@ def constructCinemaProcessorObject():
         if(cp.getState() == "connected"):
             cp.disconnect()
         cp = None
-    if(cpType == CPTypeCode.CP750):
+    if(cpType == CPTypeCode.CP650):
+        cp = CP650Control.CP650Control(host)
+    elif(cpType == CPTypeCode.CP750):
         cp = CP750Control.CP750Control(host)
-    elif(cpType == CPTypeCode.CP850 or cpType == CPTypeCode.CP950):
+    elif(cpType in [CPTypeCode.CP850, CPTypeCode.CP950]):
         cp = CP850Control.CP850Control(host)
     elif(cpType == CPTypeCode.JSD60):
         cp = JSD60Control.JSD60Control(host)
+    elif(cpType == CPTypeCode.JSD100):
+        cp = JSD100Control.JSD100Control(host)
     else:
         logging.error('Invalid cinema processor type (CPTYPE), check config. defaulting to CP850/CP950')
         cp = CP850Control.CP850Control(host)
@@ -293,18 +312,24 @@ def setUpCinemaProcessor():
     
     cp.connect()
     
-    #Check to see if the CP750 is connected and if it isn't, keep trying each 1 second
+    #Check to see if the Cinema Processor is connected and if it isn't, keep trying each 1 second
     while cp.getState() != 'connected':
+        
+        #Checks to see if the program has been manually terminated
+        if terminate:
+            return
+        
         print('Check connection                               ',end='\r')
-        time.sleep(1)
+        time.sleep(1) #Consider making this configurable?
         if(pState == ProgramState.RESTART):
             ChangeIP.changeStaticIP(ownIP)
             constructCinemaProcessorObject()
             pState = ProgramState.CONNECTING
+            refeshOLED()
         cp.connect()
     pState = ProgramState.CONNECTED
     refeshOLED()
-    return cp
+    return
     
 def main():
     global cp, pState
@@ -314,7 +339,7 @@ def main():
     logging.basicConfig(filename=f'{FILEPATH}/logs/VolumeControl.log', encoding='utf-16', level=LOGGING_LEVEL)
     logging.info(f'_______Starting VolumeControl at {datetime.now().strftime("%m/%d/%Y, %H:%M:%S____________________")}')
     
-    # Load settings from data.txt (cpType, cpIP
+    # Load settings from data.txt
     getData()
     # Initialize displays, cp,and encoder
     setUp7Seg()
@@ -325,14 +350,15 @@ def main():
     ChangeIP.changeStaticIP(ownIP)
     print7seg("--  ")
     
+    print("Connecting to Cinema Processor")
     setUpCinemaProcessor()
     print7seg("--- ")
     
-    enc = RotaryEncoder.RotaryEncoder(APIN,BPIN)
-    print7seg("----")
+    if not terminate:
+        enc = RotaryEncoder.RotaryEncoder(APIN,BPIN)
+        print7seg("----")
 
     
-    print("Connecting to Cinema Processor")
     while not terminate:
         if (pState == ProgramState.RESTART):
             ChangeIP.changeStaticIP(ownIP)
@@ -343,11 +369,21 @@ def main():
         # the sensitivity value would risk dropping half-ticks and the like.
         volumeChange = math.floor(enc.pos*SENSITIVITY)
         if(volumeChange):
-            cp.addfader(volumeChange)
-            enc.pos = enc.pos - (volumeChange/SENSITIVITY)
+            if(cp.addfader(volumeChange)):          #Send the volume change and check to see if it went through correctly
+                enc.pos = enc.pos - (volumeChange/SENSITIVITY)
+            else:
+                enc.pos = 0                         #Swallow any volume changes during connection difficulty
+                
         #Update the display with the current value
-        print(cp.displayfader()+'                       ',end='\r') #Prints to the console
-        print7seg(cp.displayfader()) #Prints the volume to the 7 segment display
+        currentFader = cp.displayfader()
+        if(currentFader):
+            print(currentFader+'                       ',end='\r') #Prints to the console
+            print7seg(currentFader) #Prints the volume to the 7 segment display
+            
+        else:
+            print('Connection Issue                       ',end='\r')
+            print7seg('E   ') 
+            setUpCinemaProcessor()              #Disconnect and reconnect socket.
         time.sleep(delay)
         
     # When the program is terminated, disconnect from the Cinema Processor and clear the displays.

@@ -114,15 +114,17 @@ class CP750Control(CinemaProcessor.CinemaProcessor):
 #         see CinemaProcessor
     
     # Adds or subtracts an integer to the fader
-    def addfader(self, value=1):
-        if(isinstance(value, int)):
-            if(value>=0):
-                self.send(f'cp750.ctrl.fader_delta +{value}')
-            else:
-                self.send(f'cp750.ctrl.fader_delta {value}')
+    # ~ def addfader(self, value=1):
+        # ~ if(isinstance(value, int)):
+            # ~ if(value>=0):
+                # ~ self.send(f'cp750.ctrl.fader_delta +{value}')
+            # ~ else:
+                # ~ self.send(f'cp750.ctrl.fader_delta {value}')
      
     def getfader(self):
-        return self.stripvalue(self.send('cp750.sys.fader ?'))
+        returnFader = self.send('cp750.sys.fader ?')
+        # ~ print(returnFader)
+        return self.stripvalue(returnFader)
     
     def setfader(self, value):
         return self.stripvalue(self.send(f'cp750.sys.fader {value}'))
@@ -138,9 +140,13 @@ class CP750Control(CinemaProcessor.CinemaProcessor):
     
     
     def displayfader(self):
-        rawfader = str(self.getfader())
-        formattedfader = rawfader[:-1]+'.'+rawfader[-1:] #add decimal point one space over from the right
-        return f'{str(formattedfader).rjust(5," ")}'
+        fader = self.getfader()
+        if(isinstance(fader, int)):
+            rawfader = str(fader)
+            formattedfader = rawfader[:-1]+'.'+rawfader[-1:] #add decimal point one space over from the right
+            return f'{str(formattedfader).rjust(5," ")}'
+        else:
+            return False
     
 def main():
     logging.basicConfig(filename='CP750Control.log', encoding='utf-16', level=logging.INFO)
