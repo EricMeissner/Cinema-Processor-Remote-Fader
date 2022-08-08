@@ -75,6 +75,9 @@ keyInput = ""
 # If displaying an error to the user on the OLED, this will be used 
 errorOutput = ""
 
+# Used when no separate 7-segment display is enabled
+displayFader = "    "
+
 # this function is called when a keyboard key is pressed
 def press_on(key):
     global cp,terminate,keyInput,pState,cpType,host,ownIP,newCPType
@@ -191,16 +194,20 @@ def setUp7Seg():
 
         # Clear the display.
         adafruit_7seg.fill(0)
-    elif(Config.DISPLAYTYPE == 2):
+    elif(DISPLAYTYPE == 2):
         tm1637_7seg = tm1637.TM1637(clk=Config.CLK, dio=Config.DIO)
         tm1637_7seg.brightness(0) 
+    # if DISPLAYTYPE == 0: pass 
 
 def print7seg(data):
-    global adafruit_7seg,tm1637_7seg
+    global adafruit_7seg,tm1637_7seg,displayFader
     
-    if(DISPLAYTYPE == 1):
+    if(DISPLAYTYPE == 0):
+        displayFader = data
+        refeshOLED()
+    elif(DISPLAYTYPE == 1):
         adafruit_7seg.print(data)
-    elif(Config.DISPLAYTYPE == 2):
+    elif(DISPLAYTYPE == 2):
         data = data.replace(".","")
         tm1637_7seg.show(data)
 
@@ -224,7 +231,7 @@ def setUpOLED():
 # After you change the program state or any of the displayed variables on the OLEd
 # you'll need to call this to update the OLED to show the changes.
 def refeshOLED():
-    global displayOLED, pState, errorOutput, newCPType
+    global displayOLED, pState, errorOutput, newCPType, displayFader
     # Create blank image for drawing.
     # Make sure to create image with mode '1' for 1-bit color.
     width = displayOLED.width
@@ -248,37 +255,43 @@ def refeshOLED():
     # Load default font.
     font = ImageFont.load_default()
     
-    # Construct the input/message line at the bottom of the OLED display based on program state
-    inputLine = ""
-    if pState == ProgramState.LOADING:
-        inputLine = "LOADING..."
-    elif pState == ProgramState.CONNECTING:
-        inputLine = "CONNECTING..."
-    elif pState == ProgramState.CONNECTED:
-        inputLine = f"CONNECTED TO {cpType.name}"
-    elif pState == ProgramState.EDIT_CPTYPE:
-        inputLine = f"CP TYPE?  {newCPType.name}"
-    elif pState == ProgramState.EDIT_CPIP:
-        inputLine = f"CPIP? {keyInput}"
-    elif pState == ProgramState.EDIT_OWNIP:
-        inputLine = f"OWNIP?{keyInput}"
-    elif pState == ProgramState.RESTART:
-        inputLine = "RESTARTING..."
-    elif pState == ProgramState.ERROR:
-        if len(errorOutput):
-            inputLine = errorOutput.upper()
-        else:
-            inputLine = "ERROR"
-    elif pState == ProgramState.SHUTDOWN:
-        inputLine = "SHUTTING DOWN"
+    if (pState == ProgramState.CONNECTED and DISPLAYTYPE == 0):
+        # When the fader is connected and DISPLAYTYPE is 0, print the volume on the OLED
+        font = ImageFont.truetype(f'{FILEPATH}/fonts/hack/Hack-Regular.ttf', 34)
+        draw.text((x, top + 0), f"{displayFader}", font=font, fill=255)
     else:
-        inputLine = "PROGRAM STATE UNKNOWN"
-        
-    # Construct the display text.
-    draw.text((x, top + 0), f"CP TYPE: {cpType.name}", font=font, fill=255)
-    draw.text((x, top + 8), f"CPIP: {host}", font=font, fill=255)
-    draw.text((x, top + 16),f"OWNIP:{ownIP}", font=font, fill=255)
-    draw.text((x, top + 25),inputLine , font=font, fill=255)
+        font = ImageFont.load_default()
+        # Construct the input/message line at the bottom of the OLED display based on program state
+        inputLine = ""
+        if pState == ProgramState.LOADING:
+            inputLine = "LOADING..."
+        elif pState == ProgramState.CONNECTING:
+            inputLine = "CONNECTING..."
+        elif pState == ProgramState.CONNECTED:
+            inputLine = f"CONNECTED TO {cpType.name}"
+        elif pState == ProgramState.EDIT_CPTYPE:
+            inputLine = f"CP TYPE?  {newCPType.name}"
+        elif pState == ProgramState.EDIT_CPIP:
+            inputLine = f"CPIP? {keyInput}"
+        elif pState == ProgramState.EDIT_OWNIP:
+            inputLine = f"OWNIP?{keyInput}"
+        elif pState == ProgramState.RESTART:
+            inputLine = "RESTARTING..."
+        elif pState == ProgramState.ERROR:
+            if len(errorOutput):
+                inputLine = errorOutput.upper()
+            else:
+                inputLine = "ERROR"
+        elif pState == ProgramState.SHUTDOWN:
+            inputLine = "SHUTTING DOWN"
+        else:
+            inputLine = "PROGRAM STATE UNKNOWN"
+            
+        # Construct the display text.
+        draw.text((x, top + 0), f"CP TYPE: {cpType.name}", font=font, fill=255)
+        draw.text((x, top + 8), f"CPIP: {host}", font=font, fill=255)
+        draw.text((x, top + 16),f"OWNIP:{ownIP}", font=font, fill=255)
+        draw.text((x, top + 25),inputLine , font=font, fill=255)
     
     displayOLED.image(image)
     displayOLED.show()

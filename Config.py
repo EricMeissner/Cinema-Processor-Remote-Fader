@@ -23,10 +23,11 @@ SENSITIVITY = 1
 APIN=12
 BPIN=16
 
-# 7 segmeny display type
+# 7 segment display type
+# 0 = No 7 segment display; Prints volume information on OLED
 # 1 = i2c Adafruit HT16K33 segments
 # 2 = TM1637
-DISPLAYTYPE = 1
+DISPLAYTYPE = 0
 
 # TM1637 data pins (only necessary if display type is TM1637, ignored if TM1637 not used)
 CLK = 5
